@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Graph Debug</title>
+  <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.8.5/dist/g6.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    #debugGraphContainer {
+      width: 100%;
+      height: 600px;
+      border: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Knowledge Graph Debug</h1>
+  
+  <div class="controls">
+    <button id="loadDataBtn">Load Sample Data</button>
+    <button id="renderGraphBtn">Render Graph</button>
+    <button id="clearGraphBtn">Clear Graph</button>
+  </div>
+  
+  <div id="debugGraphContainer"></div>
+  
+  <h3>Graph Data</h3>
+  <pre id="dataOutput"></pre>
+  
+  <h3>Debug Log</h3>
+  <pre id="debugLog"></pre>
+  
+  <script>
+    // Simple debug logger
+    const debugLog = document.getElementById('debugLog');
+    const dataOutput = document.getElementById('dataOutput');
+    
+    function log(message) {
+      const timestamp = new Date().toISOString().substr(11, 8);
+      debugLog.textContent = `[${timestamp}] ${message}\n` + debugLog.textContent;
+      console.log(message);
+    }
+    
+    // Sample graph data
+    const sampleData = {
+      categories: [
+        {
+          id: 'cat1',
+          name: 'Technology',
+          description: 'Tech news and developments',
+          topics_ids: ['topic1', 'topic2'],
+          subcategories: [
+            {
+              id: 'subcat1',
+              name: 'AI',
+              description: 'Artificial Intelligence',
+              topics_ids: ['topic1']
+            }
+          ]
+        },
+        {
+          id: 'cat2',
+          name: 'Business',
+          description: 'Business news',
+          topics_ids: ['topic3']
+        }
+      ],
+      topics: [
+        {
+          id: 'topic1',
+          name: 'Machine Learning',
+          description: 'ML topics',
+          related_topics_ids: ['topic2']
+        },
+        {
+          id: 'topic2',
+          name: 'Cloud Computing',
+          description: 'Cloud services',
+          related_topics_ids: []
+        },
+        {
+          id: 'topic3',
+          name: 'Startups',
+          description: 'Startup news',
+          related_topics_ids: []
+        }
+      ]
+    };
+    
+    // Initialize graph
+    let graph = null;
+    
+    function initGraph() {
+      log('Initializing graph...');
+      const container = document.getElementById('debugGraphContainer');
+      
+      graph = new G6.Graph({
+        container: 'debugGraphContainer',
+        width: container.offsetWidth,
+        height: container.offsetHeight,
+        modes: {
+          default: ['drag-canvas', 'zoom-canvas', 'drag-node']
+        },
+        layout: {
+          type: 'force',
+          preventOverlap: true,
+          linkDistance: 100,
+          nodeStrength: -50,
+          edgeStrength: 0.1
+        },
+        defaultNode: {
+          type: 'circle',
+          size: 30,
+          style: {
+            fill: '#91d5ff',
+            stroke: '#40a9ff',
+            lineWidth: 1
+          },
+          labelCfg: {
+            position: 'bottom',
+            style: {
+              fill: '#000',
+              fontSize: 12
+            }
+          }
+        },
+        defaultEdge: {
+          type: 'line',
+          style: {
+            stroke: '#aaa',
+            lineWidth: 1
+          }
+        }
+      });
+      
+      log('Graph initialized successfully');
+    }
+    
+    function transformData(data) {
+      log('Transforming data...');
+      
+      try {
+        const nodes = [];
+        const edges = [];
+        
+        // Root node
+        nodes.push({
+          id: 'root',
+          label: 'Knowledge Graph',
+          size: 40,
+          style: {
+            fill: '#722ed1',
+            stroke: '#531dab'
+          }
+        });
+        
+        // Process categories
+        data.categories.forEach(category => {
+          log(`Processing category: ${category.name}`);
+          
+          nodes.push({
+            id: category.id,
+            label: category.name,
+            size: 30,
+            style: {
+              fill: '#1890ff',
+              stroke: '#096dd9'
+            }
+          });
+          
+          // Connect to root
+          edges.push({
+            source: 'root',
+            target: category.id
+          });
+          
+          // Process subcategories
+          if (category.subcategories && category.subcategories.length > 0) {
+            category.subcategories.forEach(subcat => {
+              log(`Processing subcategory: ${subcat.name}`);
+              
+              nodes.push({
+                id: subcat.id,
+                label: subcat.name,
+                size: 20,
+                style: {
+                  fill: '#52c41a',
+                  stroke: '#389e0d'
+                }
+              });
+              
+              // Connect to parent category
+              edges.push({
+                source: category.id,
+                target: subcat.id
+              });
+              
+              // Connect to topics
+              if (subcat.topics_ids && subcat.topics_ids.length > 0) {
+                subcat.topics_ids.forEach(topicId => {
+                  // Find the topic in the data
+                  const topic = data.topics.find(t => t.id === topicId);
+                  if (topic) {
+                    edges.push({
+                      source: subcat.id,
+                      target: topicId
+                    });
+                  }
+                });
+              }
+            });
+          }
+          
+          // Connect category to topics directly
+          if (category.topics_ids && category.topics_ids.length > 0) {
+            category.topics_ids.forEach(topicId => {
+              edges.push({
+                source: category.id,
+                target: topicId
+              });
+            });
+          }
+        });
+        
+        // Process topics
+        data.topics.forEach(topic => {
+          log(`Processing topic: ${topic.name}`);
+          
+          nodes.push({
+            id: topic.id,
+            label: topic.name,
+            size: 15,
+            style: {
+              fill: '#f5222d',
+              stroke: '#cf1322'
+            }
+          });
+          
+          // Connect related topics
+          if (topic.related_topics_ids && topic.related_topics_ids.length > 0) {
+            topic.related_topics_ids.forEach(relatedId => {
+              // Only create edges between topics that exist in our data
+              if (data.topics.some(t => t.id === relatedId)) {
+                edges.push({
+                  source: topic.id,
+                  target: relatedId,
+                  style: {
+                    lineDash: [4, 2],
+                    opacity: 0.5
+                  }
+                });
+              }
+            });
+          }
+        });
+        
+        log(`Transformation complete: ${nodes.length} nodes, ${edges.length} edges`);
+        return { nodes, edges };
+      } catch (error) {
+        log(`Error transforming data: ${error.message}`);
+        console.error(error);
+        return { nodes: [], edges: [] };
+      }
+    }
+    
+    function renderGraph(data) {
+      log('Rendering graph...');
+      
+      try {
+        if (!graph) {
+          initGraph();
+        }
+        
+        const graphData = transformData(data);
+        dataOutput.textContent = JSON.stringify(graphData, null, 2);
+        
+        graph.data(graphData);
+        graph.render();
+        graph.fitView(20);
+        
+        log('Graph rendered successfully');
+      } catch (error) {
+        log(`Error rendering graph: ${error.message}`);
+        console.error(error);
+      }
+    }
+    
+    // Event listeners
+    document.getElementById('loadDataBtn').addEventListener('click', () => {
+      dataOutput.textContent = JSON.stringify(sampleData, null, 2);
+      log('Sample data loaded');
+    });
+    
+    document.getElementById('renderGraphBtn').addEventListener('click', () => {
+      renderGraph(sampleData);
+    });
+    
+    document.getElementById('clearGraphBtn').addEventListener('click', () => {
+      if (graph) {
+        graph.clear();
+        log('Graph cleared');
+      }
+    });
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      log('Debug page loaded');
+      initGraph();
+    });
+  </script>
+</body>
+</html>

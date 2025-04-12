@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Knowledge Graph</title>
+    <script src="https://gw.alipayobjects.com/os/lib/antv/g6/4.8.24/dist/g6.min.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .container { display: flex; flex-direction: column; height: 100vh; padding: 20px; box-sizing: border-box; }
+        h1 { margin-top: 0; }
+        .graph-container { flex: 1; border: 1px solid #ddd; margin-bottom: 20px; }
+        .controls { margin-bottom: 10px; }
+        button { padding: 8px 12px; margin-right: 10px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; max-height: 200px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Knowledge Graph</h1>
+        
+        <div class="controls">
+            <button id="loadDataBtn">Load API Data</button>
+            <button id="renderBtn">Render Graph</button>
+            <button id="clearBtn">Clear</button>
+        </div>
+        
+        <div id="graphContainer" class="graph-container"></div>
+        
+        <h3>Data Preview</h3>
+        <pre id="dataPreview"></pre>
+        
+        <h3>Console Log</h3>
+        <pre id="consoleOutput"></pre>
+    </div>
+    
+    <script>
+        // Custom logging to show in the page
+        const consoleOutput = document.getElementById('consoleOutput');
+        const dataPreview = document.getElementById('dataPreview');
+        const originalConsoleLog = console.log;
+        
+        console.log = function(...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+            ).join(' ');
+            
+            const timestamp = new Date().toISOString().substr(11, 8);
+            consoleOutput.textContent = `[${timestamp}] ${message}\n${consoleOutput.textContent}`;
+            originalConsoleLog.apply(console, args);
+        };
+        
+        // Simple graph implementation
+        class SimpleGraph {
+            constructor(containerId) {
+                this.containerId = containerId;
+                this.graph = null;
+                this.data = null;
+            }
+            
+            init() {
+                console.log('Initializing graph...');
+                const container = document.getElementById(this.containerId);
+                
+                // Set fixed height for reliable rendering
+                container.style.height = '500px';
+                container.style.width = '100%';
+                
+                this.graph = new G6.Graph({
+                    container: this.containerId,
+                    width: container.offsetWidth,
+                    height: container.offsetHeight,
+                    modes: {
+                        default: ['drag-canvas', 'zoom-canvas', 'drag-node']
+                    },
+                    layout: {
+                        type: 'force',
+                        preventOverlap: true,
+                        linkDistance: 100,
+                        nodeStrength: -50
+                    },
+                    defaultNode: {
+                        size: 30,
+                        style: {
+                            fill: '#91d5ff',
+                            stroke: '#40a9ff',
+                            lineWidth: 2
+                        },
+                        labelCfg: {
+                            style: {
+                                fill: '#000',
+                                fontSize: 12
+                            }
+                        }
+                    },
+                    defaultEdge: {
+                        style: {
+                            stroke: '#aaa',
+                            lineWidth: 1,
+                            endArrow: true
+                        }
+                    }
+                });
+                
+                console.log('Graph initialized');
+            }
+            
+            transformData(rawData) {
+                console.log('Transforming data...');
+                
+                if (!rawData || !rawData.categories || !rawData.topics) {
+                    console.log('Invalid data format:', rawData);
+                    return { nodes: [], edges: [] };
+                }
+                
+                const nodes = [];
+                const edges = [];
+                
+                // Create root node
+                nodes.push({
+                    id: 'root',
+                    label: 'Knowledge Graph',
+                    size: 40,
+                    style: {
+                        fill: '#1a1a1a',
+                        stroke: '#000'
+                    },
+                    labelCfg: {
+                        style: {
+                            fill: '#fff'
+                        }
+                    }
+                });
+                
+                // Map topic IDs to objects for quick lookup
+                const topicsMap = {};
+                rawData.topics.forEach(topic => {
+                    topicsMap[topic.id] = topic;
+                });
+                
+                // Process categories
+                rawData.categories.forEach(category => {
+                    console.log(`Processing category: ${category.name}`);
+                    
+                    // Add category node
+                    nodes.push({
+                        id: category.id,
+                        label: category.name,
+                        size: 30,
+                        style: {
+                            fill: '#2196f3'
+                        }
+                    });
+                    
+                    // Connect to root
+                    edges.push({
+                        source: 'root',
+                        target: category.id
+                    });
+                    
+                    // Process subcategories
+                    if (category.subcategories && category.subcategories.length > 0) {
+                        category.subcategories.forEach(subcat => {
+                            // Add subcategory node
+                            nodes.push({
+                                id: subcat.id,
+                                label: subcat.name,
+                                size: 25,
+                                style: {
+                                    fill: '#4caf50'
+                                }
+                            });
+                            
+                            // Connect to parent category
+                            edges.push({
+                                source: category.id,
+                                target: subcat.id
+                            });
+                            
+                            // Connect to topics via topics_ids
+                            if (subcat.topics_ids && subcat.topics_ids.length > 0) {
+                                subcat.topics_ids.forEach(topicId => {
+                                    if (topicsMap[topicId]) {
+                                        const topic = topicsMap[topicId];
+                                        
+                                        // Add topic node if not already added
+                                        if (!nodes.some(n => n.id === topicId)) {
+                                            nodes.push({
+                                                id: topic.id,
+                                                label: topic.name,
+                                                size: 20,
+                                                style: {
+                                                    fill: '#ff9800'
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Connect subcategory to topic
+                                        edges.push({
+                                            source: subcat.id,
+                                            target: topicId
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Connect category directly to topics
+                    if (category.topics_ids && category.topics_ids.length > 0) {
+                        category.topics_ids.forEach(topicId => {
+                            if (topicsMap[topicId]) {
+                                const topic = topicsMap[topicId];
+                                
+                                // Add topic node if not already added
+                                if (!nodes.some(n => n.id === topicId)) {
+                                    nodes.push({
+                                        id: topic.id,
+                                        label: topic.name,
+                                        size: 20,
+                                        style: {
+                                            fill: '#ff9800'
+                                        }
+                                    });
+                                }
+                                
+                                // Connect category to topic
+                                edges.push({
+                                    source: category.id,
+                                    target: topicId
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                // Connect related topics
+                rawData.topics.forEach(topic => {
+                    if (topic.related_topics_ids && topic.related_topics_ids.length > 0) {
+                        topic.related_topics_ids.forEach(relatedId => {
+                            // Make sure both topics exist in our graph
+                            if (nodes.some(n => n.id === topic.id) && 
+                                nodes.some(n => n.id === relatedId)) {
+                                edges.push({
+                                    source: topic.id,
+                                    target: relatedId,
+                                    style: {
+                                        stroke: '#ddd',
+                                        lineDash: [4, 2]
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                console.log(`Created ${nodes.length} nodes and ${edges.length} edges`);
+                return { nodes, edges };
+            }
+            
+            render(data) {
+                if (!this.graph) {
+                    this.init();
+                }
+                
+                this.data = this.transformData(data);
+                
+                console.log('Rendering graph...');
+                this.graph.data(this.data);
+                this.graph.render();
+                this.centerGraph();
+                console.log('Graph rendered');
+            }
+            
+            centerGraph() {
+                if (this.graph) {
+                    this.graph.fitView(20);
+                }
+            }
+            
+            clear() {
+                if (this.graph) {
+                    this.graph.clear();
+                }
+                consoleOutput.textContent = '';
+                dataPreview.textContent = '';
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded');
+            
+            const graphInstance = new SimpleGraph('graphContainer');
+            
+            // Load API data
+            document.getElementById('loadDataBtn').addEventListener('click', async () => {
+                try {
+                    console.log('Fetching data from API...');
+                    const categoriesResponse = await fetch('/api/entities/categories');
+                    const topicsResponse = await fetch('/api/entities/topics');
+                    
+                    if (!categoriesResponse.ok || !topicsResponse.ok) {
+                        throw new Error('Failed to fetch data');
+                    }
+                    
+                    const categoriesData = await categoriesResponse.json();
+                    const topicsData = await topicsResponse.json();
+                    
+                    console.log('Raw API responses:', {
+                        categories: categoriesData,
+                        topics: topicsData
+                    });
+                    
+                    // Validate data structure
+                    if (!categoriesData.categories || !Array.isArray(categoriesData.categories)) {
+                        console.error('Invalid categories data format:', categoriesData);
+                        throw new Error('Categories data is not in expected format');
+                    }
+                    
+                    if (!topicsData.topics || !Array.isArray(topicsData.topics)) {
+                        console.error('Invalid topics data format:', topicsData);
+                        throw new Error('Topics data is not in expected format');
+                    }
+                    
+                    const data = {
+                        categories: categoriesData.categories,
+                        topics: topicsData.topics
+                    };
+                    
+                    console.log('Prepared data structure:', {
+                        categoriesCount: data.categories.length,
+                        topicsCount: data.topics.length,
+                        sampleCategory: data.categories[0],
+                        sampleTopic: data.topics[0]
+                    });
+                    
+                    console.log('Data loaded successfully');
+                    dataPreview.textContent = JSON.stringify(data, null, 2);
+                    
+                    // Add data counts to page
+                    const countInfo = document.createElement('div');
+                    countInfo.style.margin = '10px 0';
+                    countInfo.style.padding = '10px';
+                    countInfo.style.backgroundColor = '#e8f5e9';
+                    countInfo.style.borderRadius = '4px';
+                    countInfo.innerHTML = `
+                        <strong>Data Loaded:</strong> ${data.categories.length} categories, ${data.topics.length} topics
+                    `;
+                    
+                    dataPreview.parentNode.insertBefore(countInfo, dataPreview);
+                    
+                    // Store in global for rendering
+                    window.apiData = data;
+                } catch (error) {
+                    console.log('Error loading data:', error.message);
+                }
+            });
+            
+            // Render graph button
+            document.getElementById('renderBtn').addEventListener('click', () => {
+                if (window.apiData) {
+                    try {
+                        console.log('Starting graph rendering with data:', window.apiData);
+                        graphInstance.render(window.apiData);
+                        console.log('Graph rendering completed successfully');
+                    } catch (error) {
+                        console.error('Error rendering graph:', error);
+                        alert(`Error rendering graph: ${error.message}\nCheck console for details.`);
+                    }
+                } else {
+                    console.log('No data loaded. Please load data first.');
+                }
+            });
+            
+            // Clear button
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                graphInstance.clear();
+                delete window.apiData;
+            });
+            
+            // Initialize the graph
+            graphInstance.init();
+        });
+    </script>
+</body>
+</html>

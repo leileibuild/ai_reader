@@ -34,6 +34,14 @@ coverage.xml
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Node.js dependencies and files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+package-lock.json
+
 # IDE specific files
 .idea/
 .vscode/
@@ -47,24 +55,27 @@ coverage.xml
 .env.development.local
 .env.test.local
 .env.production.local
+.env.conda
 
 # Log files
 *.log
 logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Database files
+# Database files and runtime data
 *.sqlite3
 *.db
+data/db/
+.data_loaded
+.server.pid
 
-# Temporary files
+# Temporary files and backups
 temp/
 tmp/
 .temp/
 .tmp/
+temp_backup/
 
 # User-specific files
 .DS_Store
 Thumbs.db
+.windsurfrules

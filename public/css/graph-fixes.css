@@ -1,0 +1,81 @@
+/* 
+ * Knowledge Graph Visualization Enhancements
+ * These styles improve the UI and interaction with the knowledge graph
+ */
+
+/* Make container fill more of the viewport */
+.container {
+    max-width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Header and controls should not grow */
+header {
+    flex-shrink: 0;
+}
+
+/* Make graph container expand to fill available space */
+#graphContainer {
+    flex: 1;
+    min-height: 0; /* Important for Firefox */
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Canvas styling to fill container properly */
+#graphContainer canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+/* Prevent text selection during graph interactions */
+#graphContainer {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Make info panel fixed size */
+.info-panel {
+    flex-shrink: 0;
+    max-height: 200px;
+}
+
+.panel-content {
+    overflow-y: auto;
+    max-height: 150px;
+}
+
+/* Improve visualization controls */
+.graph-controls {
+    z-index: 100 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Prevent body scrolling */
+body {
+    overflow: hidden;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Responsive adjustments */
+@media (max-height: 700px) {
+    .info-panel {
+        max-height: 150px;
+    }
+    
+    .panel-content {
+        max-height: 100px;
+    }
+}
