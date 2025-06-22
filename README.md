@@ -27,12 +27,90 @@ This application provides a structured way to store and access news articles wit
   package.json        # Node.js dependencies
 ```
 
+## Testing
+
+The application includes a comprehensive test suite using the following tools:
+
+- **Jest**: Test runner and assertion library
+- **Supertest**: HTTP assertions for API testing
+- **MongoDB Memory Server**: In-memory MongoDB for isolated testing
+- **Test Fixtures**: Predefined test data for consistent test scenarios
+
+### Test Structure
+
+```
+tests/
+├── config/                   # Test configuration
+│   ├── mongodb-test-helper.js  # MongoDB in-memory setup
+│   ├── setup.js               # Jest setup file
+│   ├── supertest-helper.js    # Express/Supertest utilities
+│   └── test-data-helper.js    # Test data population utilities
+│
+├── fixtures/                 # Test data
+│   ├── article-fixtures.js    # Article mock data
+│   └── entity-fixtures.js     # Entity mock data (topics, categories, etc.)
+│
+├── integration/              # Integration tests
+│   └── routes/
+│       ├── article.routes.test.js  # Article API endpoint tests
+│       └── entity.routes.test.js   # Entity API endpoint tests
+│
+└── unit/                     # Unit tests
+    └── controllers/
+        ├── article.controller.test.js  # Article controller tests
+        └── entity.controller.test.js   # Entity controller tests
+```
+
+### Running Tests
+
+```bash
+# Install test dependencies
+npm install --save-dev jest supertest mongodb-memory-server
+
+# Run all tests
+npm test
+
+# Run tests in watch mode (for development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run a specific test file
+npx jest tests/unit/controllers/article.controller.test.js
+```
+
+### Test Coverage
+
+The test suite aims for high coverage of:
+
+- All API endpoints
+- All controller logic
+- Success and error states
+- Edge cases and validations
+
+### Writing Tests
+
+1. **Unit Tests**: Test individual functions in isolation
+   - Place in `tests/unit/`
+   - Use mocks for external dependencies
+
+2. **Integration Tests**: Test API endpoints end-to-end
+   - Place in `tests/integration/`
+   - Use the MongoDB memory server
+   - Leverage test fixtures for consistent data
+
+3. **Fixtures**: Define test data in `tests/fixtures/`
+   - Keep test data consistent
+   - Use realistic but deterministic values
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v12+)
-- MongoDB (v4.4+)
+- Node.js (v14+)
+- MongoDB (v4.4+ or use MongoDB Atlas)
+- npm (v6+)
 
 ### Installation
 
