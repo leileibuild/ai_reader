@@ -29,80 +29,13 @@ This application provides a structured way to store and access news articles wit
 
 ## Testing
 
-The application includes a comprehensive test suite using the following tools:
+The application includes a comprehensive test suite for maintaining code quality and preventing regressions.
 
-- **Jest**: Test runner and assertion library
-- **Supertest**: HTTP assertions for API testing
-- **MongoDB Memory Server**: In-memory MongoDB for isolated testing
-- **Test Fixtures**: Predefined test data for consistent test scenarios
+- **Framework**: Jest with Supertest for API testing 
+- **Strategy**: Unit tests for business logic, integration tests for API endpoints
+- **Isolation**: MongoDB Memory Server for database tests
 
-### Test Structure
-
-```
-tests/
-├── config/                   # Test configuration
-│   ├── mongodb-test-helper.js  # MongoDB in-memory setup
-│   ├── setup.js               # Jest setup file
-│   ├── supertest-helper.js    # Express/Supertest utilities
-│   └── test-data-helper.js    # Test data population utilities
-│
-├── fixtures/                 # Test data
-│   ├── article-fixtures.js    # Article mock data
-│   └── entity-fixtures.js     # Entity mock data (topics, categories, etc.)
-│
-├── integration/              # Integration tests
-│   └── routes/
-│       ├── article.routes.test.js  # Article API endpoint tests
-│       └── entity.routes.test.js   # Entity API endpoint tests
-│
-└── unit/                     # Unit tests
-    └── controllers/
-        ├── article.controller.test.js  # Article controller tests
-        └── entity.controller.test.js   # Entity controller tests
-```
-
-### Running Tests
-
-```bash
-# Install test dependencies
-npm install --save-dev jest supertest mongodb-memory-server
-
-# Run all tests
-npm test
-
-# Run tests in watch mode (for development)
-npm run test:watch
-
-# Run tests with coverage report
-npm run test:coverage
-
-# Run a specific test file
-npx jest tests/unit/controllers/article.controller.test.js
-```
-
-### Test Coverage
-
-The test suite aims for high coverage of:
-
-- All API endpoints
-- All controller logic
-- Success and error states
-- Edge cases and validations
-
-### Writing Tests
-
-1. **Unit Tests**: Test individual functions in isolation
-   - Place in `tests/unit/`
-   - Use mocks for external dependencies
-
-2. **Integration Tests**: Test API endpoints end-to-end
-   - Place in `tests/integration/`
-   - Use the MongoDB memory server
-   - Leverage test fixtures for consistent data
-
-3. **Fixtures**: Define test data in `tests/fixtures/`
-   - Keep test data consistent
-   - Use realistic but deterministic values
+Detailed testing documentation is available in the [tests/README.md](./tests/README.md) file.
 
 ## Getting Started
 
@@ -155,6 +88,61 @@ The data model leverages MongoDB's document-oriented structure to efficiently or
 - **References**: Used for relationships between entities using ID references
 - **Schema Validation**: Each collection uses MongoDB's schema validation to ensure data integrity
 
+#### Entity Relationship Diagram
+
+```
++-------------+       +------------+       +------------+
+|   Article   |       |   Topic    |       |  Category  |
++-------------+       +------------+       +------------+
+| id          |<----->| id         |<----->| id         |
+| title       |       | name       |       | name       |
+| publisher   |       | description|       | description|
+| author      |       | image_urls |       | image_urls |
+| published_dt|       | keywords   |       | keywords   |
+| url         |       | articles[] |       | topics[]   |
+| summary     |       | categories[]       | subcategories[]
+| image_urls[]|       | related[]  |       |
+| keywords[]  |       +------------+       +------------+
+| topics[]    |             ^                    ^
+| categories[]|             |                    |
+| events[]    |             |                    |
+| priority    |       +------------+             |
++-------------+       |   Event    |             |
+      ^               +------------+             |
+      |               | id         |             |
+      |               | date       |             |
+      |               | description|             |
+      |               | image_urls[]             |
+      |               | articles[] |             |
+      |               | related[]  |             |
+      |               | timeline{} |             |
+      |               +------------+             |
+      |                                         |
+      |                                         |
+      v                                         v
++-------------+                                 |
+|    Note     |                                 |
++-------------+                                 |
+| id          |                                 |
+| content     |<--------------------------------+
+| created_at  |
+| updated_at  |
+| reference_type (article/topic/category/event)|
+| reference_id|                                 
+| tags[]      |                                 
+| priority    |                                 
+| is_archived |                                 
++-------------+                                 
+```
+
+#### Key Relationships
+
+- **Article** references Topics, Categories, and Events through ID arrays
+- **Topic** references Articles and Categories through ID arrays
+- **Category** references Topics and contains embedded Subcategories
+- **Event** references Articles and related Events, contains embedded Timeline items
+- **Note** references any entity type (Article, Topic, Category, or Event) through reference_type and reference_id
+
 ### 2. Backend API Architecture
 
 The backend follows several key design principles:
@@ -179,225 +167,199 @@ The backend follows several key design principles:
 
 ## API Documentation
 
-### Health Check
+The News Reader application provides a comprehensive RESTful API for interacting with articles and related entities.
 
-```bash
-# Check API health
-curl -X GET http://localhost:3000/api/health
-```
+### Authentication
+Currently, the API does not require authentication for development purposes. In a production environment, you should implement proper authentication.
 
-### Article APIs
+### Rate Limiting
+Rate limiting is not currently implemented but is recommended for production use. Consider implementing rate limiting based on your specific requirements.
+
+## API Endpoints Reference
+
+### 1. Article API (`/api/articles`)
 
 #### Get All Articles
-
 ```bash
-# Get all articles with pagination and filtering
+# Get paginated articles with filtering and sorting
 curl -X GET "http://localhost:3000/api/articles?limit=10&skip=0&sort=published_date&order=desc&publisher=Tech%20Today"
 ```
 
-#### Get Article By ID
-
+#### Create Article
 ```bash
-# Get a specific article by ID
-curl -X GET http://localhost:3000/api/articles/article123
-```
-
-#### Create New Article
-
-```bash
-# Create a new article
 curl -X POST http://localhost:3000/api/articles \
   -H "Content-Type: application/json" \
+
   -d '{
-    "title": "The Future of AI in 2025",
-    "publisher": "Tech Today",
-    "author": "Jane Smith",
-    "published_date": "2025-03-15T09:00:00Z",
-    "url": "https://techtoday.com/ai-future-2025",
-    "summary": "An in-depth look at how AI will shape our world in the coming years.",
-    "keywords": ["AI", "machine learning", "future tech", "2025"],
-    "topics_ids": ["t123", "t456"],
-    "categories_ids": ["c789"],
-    "unread_count": 1,
-    "priority": 3
+    "title": "AI Breakthrough 2025",
+    "url": "https://example.com/ai-2025",
+    "content": "Detailed article content...",
+    "categories_ids": ["cat_123"],
+    "topics_ids": ["topic_456"],
+    "metadata": {
+      "author": "Jane Smith",
+      "published_date": "2025-06-22T08:00:00Z",
+      "source": "Tech Today"
+    }
   }'
 ```
 
-#### Update Article
-
+#### Get Article by ID
 ```bash
-# Update an existing article
-curl -X PUT http://localhost:3000/api/articles/article123 \
+curl -X GET "http://localhost:3000/api/articles/article_123"
+```
+
+#### Update Article
+```bash
+curl -X PUT http://localhost:3000/api/articles/article_123 \
   -H "Content-Type: application/json" \
+
   -d '{
-    "title": "Updated: The Future of AI in 2025",
-    "summary": "Revised summary with new information about AI developments.",
-    "priority": 5
+    "title": "Updated: AI Breakthrough 2025",
+    "metadata": {
+      "is_updated": true
+    }
   }'
 ```
 
 #### Delete Article
-
 ```bash
-# Delete an article
-curl -X DELETE http://localhost:3000/api/articles/article123
+curl -X DELETE "http://localhost:3000/api/articles/article_123"
 ```
 
-#### Search Articles
+### 2. Entity API (`/api/entities`)
 
-```bash
-# Search articles by keyword
-curl -X GET "http://localhost:3000/api/articles/search?q=artificial%20intelligence&limit=10"
-```
-
-#### Get Articles by Topic
-
-```bash
-# Get articles for a specific topic
-curl -X GET http://localhost:3000/api/articles/topic/topic123
-```
-
-#### Get Articles by Category
-
-```bash
-# Get articles for a specific category
-curl -X GET http://localhost:3000/api/articles/category/category123
-```
-
-#### Get Articles by Event
-
-```bash
-# Get articles for a specific event
-curl -X GET http://localhost:3000/api/articles/event/event123
-```
-
-#### Get Priority Articles
-
-```bash
-# Get priority articles
-curl -X GET http://localhost:3000/api/articles/priority?limit=10
-```
-
-#### Get Unread Articles
-
-```bash
-# Get unread articles
-curl -X GET http://localhost:3000/api/articles/unread?limit=20
-```
-
-### Consolidated Entity APIs
-
-#### Create or Update Multiple Entities
-
+#### Batch Create/Update Entities
 ```bash
 # Create or update multiple entities in a single request
 curl -X POST http://localhost:3000/api/entities \
   -H "Content-Type: application/json" \
   -d '{
-    "topics": [
-      {
-        "name": "Artificial Intelligence",
-        "description": "News and developments in AI",
-        "keywords": ["AI", "machine learning", "neural networks"],
-        "priority": 5
-      }
-    ],
-    "categories": [
-      {
-        "name": "Technology",
-        "description": "Technology news and updates",
-        "subcategories": [
-          {
-            "id": "sub123",
-            "name": "Software Development",
-            "description": "News about software development"
-          }
-        ],
-        "priority": 4
-      }
-    ],
-    "notes": [
-      {
-        "content": "This article offers interesting insights on AI development.",
-        "reference_type": "article",
-        "reference_id": "a123",
-        "tags": ["important", "follow-up"]
-      }
-    ]
+    "topics": [{
+      "id": "topic_ai",
+      "name": "Artificial Intelligence",
+      "description": "AI and Machine Learning"
+    }],
+    "categories": [{
+      "id": "cat_tech",
+      "name": "Technology",
+      "description": "Tech news and updates",
+      "priority": 1
+    }],
+    "events": [{
+      "id": "event_conf_2025",
+      "date": "2025-05-15T00:00:00Z",
+      "description": "Annual Tech Conference 2025"
+    }],
+    "notes": [{
+      "id": "note_1",
+      "content": "Important note about AI trends",
+      "reference_type": "topic",
+      "reference_id": "topic_ai"
+    }]
   }'
 ```
 
-#### Get Multiple Entities
-
+#### Get Multiple Entities by IDs
 ```bash
-# Get multiple entities by their IDs
-curl -X GET "http://localhost:3000/api/entities?topicIds=t123,t456&categoryIds=c789"
+# Get specific entities by their IDs
+curl -X GET "http://localhost:3000/api/entities?topicIds=topic_ai,topic_ml&categoryIds=cat_tech&eventIds=event_conf_2025"
+
+# Get all entities of a specific type
+curl -X GET "http://localhost:3000/api/entities/categories"
+curl -X GET "http://localhost:3000/api/entities/topics"
+curl -X GET "http://localhost:3000/api/entities/events"
+curl -X GET "http://localhost:3000/api/entities/notes"
 ```
 
-#### Delete Multiple Entities
-
+#### Delete Entities
 ```bash
-# Delete multiple entities
+# Delete multiple entities by their IDs
 curl -X DELETE http://localhost:3000/api/entities \
   -H "Content-Type: application/json" \
   -d '{
-    "topicIds": ["t123", "t456"],
-    "noteIds": ["n789"]
+    "topicIds": ["topic_ai"],
+    "categoryIds": ["cat_tech"],
+    "eventIds": ["event_conf_2025"],
+    "noteIds": ["note_1"]
   }'
 ```
 
-#### Get All Topics
-
+#### Get Entity by ID
 ```bash
-# Get all topics with pagination
-curl -X GET "http://localhost:3000/api/entities/topics?limit=20&skip=0"
+# Get a specific entity by ID and type
+curl -X GET "http://localhost:3000/api/entities/topics/topic_ai"
+curl -X GET "http://localhost:3000/api/entities/categories/cat_tech"
+curl -X GET "http://localhost:3000/api/entities/events/event_conf_2025"
+curl -X GET "http://localhost:3000/api/entities/notes/note_1"
 ```
 
-#### Get All Categories
+### 3. Entity Search (`/api/entities/search`)
 
-```bash
-# Get all categories with pagination
-curl -X GET "http://localhost:3000/api/entities/categories?limit=20&skip=0"
-```
-
-#### Get All Events
-
-```bash
-# Get all events with pagination
-curl -X GET "http://localhost:3000/api/entities/events?limit=20&skip=0"
-```
-
-#### Get All Notes
-
-```bash
-# Get all notes with pagination
-curl -X GET "http://localhost:3000/api/entities/notes?limit=20&skip=0"
-```
-
-#### Search Across All Entity Types
-
+#### Search Across Entities
 ```bash
 # Search across all entity types
-curl -X GET "http://localhost:3000/api/entities/search?q=artificial%20intelligence&types=topics,articles"
+curl -X GET "http://localhost:3000/api/entities/search?q=artificial%20intelligence"
+
+# Search specific entity types
+curl -X GET "http://localhost:3000/api/entities/search?q=technology&types=topics,categories"
+```
+
+### 4. Article Search (`/api/articles/search`)
+
+#### Search Articles
+```bash
+# Search articles by keyword
+curl -X GET "http://localhost:3000/api/articles/search?query=artificial%20intelligence"
+```
+
+### 5. Articles by Topic, Category, Event (`/api/articles/topic`, `/api/articles/category`, `/api/articles/event`)
+
+#### Get Articles by Topic
+```bash
+# Get articles for a specific topic
+curl -X GET "http://localhost:3000/api/articles/topic/topic123"
+```
+
+#### Get Articles by Category
+```bash
+# Get articles for a specific category
+curl -X GET "http://localhost:3000/api/articles/category/category123"
+```
+
+#### Get Articles by Event
+```bash
+# Get articles for a specific event
+curl -X GET "http://localhost:3000/api/articles/event/event123"
+```
+
+### 6. Priority and Unread Articles (`/api/articles/priority`, `/api/articles/unread`)
+
+#### Get Priority Articles
+```bash
+# Get priority articles
+curl -X GET "http://localhost:3000/api/articles/priority"
+```
+
+#### Get Unread Articles
+```bash
+# Get unread articles
+curl -X GET "http://localhost:3000/api/articles/unread"
 ```
 
 ## Response Formats
 
-### Success Responses
-
-Successful responses follow this general structure:
-
+### Success Response
 ```json
 {
   "success": true,
-  "data": { ... },  // For single entity operations
-  // OR
-  "articles": [ ... ],  // For article list endpoints
-  // OR 
-  "created": { ... },   // For creation operations
-  "updated": { ... },
-  "pagination": {       // For list endpoints
-    "total": 100,
+  "data": {
+    "id": "article_123",
+    "title": "AI Breakthrough 2025",
+    "url": "https://example.com/ai-2025"
+  },
+  "pagination": {
+    "total": 42,
     "limit": 10,
     "skip": 0,
     "hasMore": true
@@ -405,18 +367,27 @@ Successful responses follow this general structure:
 }
 ```
 
-### Error Responses
-
-Error responses follow this structure:
-
+### Error Response
 ```json
 {
   "error": {
-    "message": "Error message",
-    "details": [ ... ]  // Optional validation details
+    "message": "Article not found",
+    "code": "NOT_FOUND",
+    "details": [{
+      "field": "id",
+      "message": "No article found with ID article_999"
+    }]
   }
 }
 ```
+
+### Error Codes
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `429` - Too Many Requests
+- `500` - Internal Server Error
 
 ## Contributing
 

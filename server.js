@@ -54,10 +54,10 @@ async function startServer() {
     // Connect to MongoDB
     await db.connect();
     
-    // Start listening for requests - bind to localhost only for security
-    app.listen(PORT, '127.0.0.1', () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      console.log(`Health check available at http://localhost:${PORT}/api/health`);
+    // Start listening for requests - bind to all interfaces for Docker/external access
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
+      console.log(`Health check available at http://0.0.0.0:${PORT}/api/health`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

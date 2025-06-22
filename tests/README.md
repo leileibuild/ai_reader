@@ -11,6 +11,8 @@ The testing suite is designed with several key components:
 - **MongoDB Memory Server**: Running tests against an in-memory MongoDB instance
 - **Fixtures**: Predefined test data for consistent testing scenarios
 - **Mocks**: Simulating database operations for true unit testing
+- **Jest**: Test runner and assertion library
+- **Supertest**: HTTP assertions for API testing
 
 ## Test Structure
 
@@ -131,6 +133,12 @@ The test suite aims for high coverage of:
 
 5. **Error Handling**: Tests cover both success and error cases.
 
+6. **Realistic Test Data**: Use realistic but deterministic values in test fixtures.
+
+7. **Code Coverage**: Aim for high coverage of all API endpoints, controller logic, success/error states, and edge cases.
+
+8. **Test Documentation**: Include clear descriptions in test cases explaining what's being tested.
+
 ## Adding New Tests
 
 When adding new features, follow these steps to maintain test coverage:
@@ -139,3 +147,53 @@ When adding new features, follow these steps to maintain test coverage:
 2. For new endpoints, add integration tests in `tests/integration/routes/`
 3. For new controller logic, add unit tests in `tests/unit/controllers/`
 4. Verify coverage with `npm run test:coverage`
+
+## Writing Tests
+
+1. **Unit Tests**: Test individual functions in isolation
+   - Place in `tests/unit/`
+   - Use mocks for external dependencies
+   - Focus on business logic validation
+
+2. **Integration Tests**: Test API endpoints end-to-end
+   - Place in `tests/integration/`
+   - Use the MongoDB memory server for database operations
+   - Validate HTTP status codes, response formats, and data persistence
+   - Test parameter validation and error handling
+
+3. **Fixtures**: Define test data in `tests/fixtures/`
+   - Keep test data consistent across tests
+   - Structure fixtures to be easily adaptable for different test scenarios
+   - Include edge cases in fixtures when possible
+
+### Example Test Case
+
+```javascript
+// Example integration test
+describe('GET /api/articles', () => {
+  beforeEach(async () => {
+    // Populate test data using fixtures
+    await populateArticles();
+  });
+
+  it('should return paginated articles with default limits', async () => {
+    const res = await request(app)
+      .get('/api/articles')
+      .expect(200);
+      
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.articles)).toBe(true);
+    expect(res.body.pagination).toBeDefined();
+  });
+  
+  it('should filter articles by publisher', async () => {
+    const res = await request(app)
+      .get('/api/articles?publisher=Tech%20Today')
+      .expect(200);
+      
+    const allFromPublisher = res.body.articles
+      .every(article => article.publisher === 'Tech Today');
+    expect(allFromPublisher).toBe(true);
+  });
+});
+```

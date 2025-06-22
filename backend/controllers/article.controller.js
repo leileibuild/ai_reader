@@ -24,7 +24,7 @@ async function getAllArticles(req, res, next) {
     const order = req.query.order === 'asc' ? 1 : -1;
     
     // Get database models
-    const { models } = db.getModels();
+    const models = db.getModels();
     
     // Create a query to find articles based on filters
     let query = {};
@@ -72,7 +72,13 @@ async function getAllArticles(req, res, next) {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -101,7 +107,13 @@ async function getArticleById(req, res, next) {
     
     res.status(200).json(article);
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -142,7 +154,13 @@ async function createArticle(req, res, next) {
     
     res.status(201).json(createdArticle);
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -192,7 +210,13 @@ async function updateArticle(req, res, next) {
     
     res.status(200).json(updatedArticle);
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -230,7 +254,13 @@ async function deleteArticle(req, res, next) {
     
     res.status(204).end();
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -271,7 +301,13 @@ async function searchArticles(req, res, next) {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -306,7 +342,13 @@ async function getArticlesByTopic(req, res, next) {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -341,7 +383,13 @@ async function getArticlesByCategory(req, res, next) {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -376,7 +424,13 @@ async function getArticlesByEvent(req, res, next) {
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -403,7 +457,13 @@ async function getPriorityArticles(req, res, next) {
       count: articles.length
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
@@ -430,7 +490,13 @@ async function getUnreadArticles(req, res, next) {
       count: articles.length
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching articles:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve articles',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+      }
+    });
   }
 }
 
